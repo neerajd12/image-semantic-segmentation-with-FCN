@@ -4,7 +4,7 @@ import helper
 import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
-
+from datetime import datetime
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
@@ -56,16 +56,16 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
     # 
-    conv_layer7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, 1, trainable=False) # 1x1 convolution
-    deconv1 = tf.layers.conv2d_transpose(conv_layer7, num_classes, 4, 2, padding='same')
+    conv_layer7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, 1)
+    deconv1 = tf.layers.conv2d_transpose(conv_layer7, num_classes, 4, strides=(2, 2), padding='same')
 
-    conv_layer4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, 1, trainable=False) # 1x1 convolution
-    deconv1 = tf.add(deconv1, conv_layer4) # skip layer
-    deconv2 = tf.layers.conv2d_transpose(deconv1, num_classes, 4, 2, padding='same')
+    conv_layer4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, 1)
+    deconv1 = tf.add(deconv1, conv_layer4)
+    deconv2 = tf.layers.conv2d_transpose(deconv1, num_classes, 4, strides=(2, 2), padding='same')
 
-    conv_layer3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, 1, trainable=False) # 1x1 convolution
-    deconv2 = tf.add(deconv2, conv_layer3) # skip layer
-    deconv_out = tf.layers.conv2d_transpose(deconv2, num_classes, 16, 8, padding='same')
+    conv_layer3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, 1)
+    deconv2 = tf.add(deconv2, conv_layer3)
+    deconv_out = tf.layers.conv2d_transpose(deconv2, num_classes, 16, strides=(8, 8), padding='same')
     return deconv_out
 tests.test_layers(layers)
 
@@ -109,17 +109,18 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     # TODO: Implement function
     sess.run(tf.global_variables_initializer())
     for epoch in range(epochs):
-        losses = []
+        total_loss = []
         print("Training epoch %d" % (epoch+1))
         for images, labels in get_batches_fn(batch_size):
-            loss, _ = sess.run([cross_entropy_loss, train_op], feed_dict={input_image: images, correct_label: labels, keep_prob: 0.8,learning_rate: 0.001})
-            losses.append(loss)
-        print("Loss: %f" % (sum(losses)/len(losses)))
+            loss, _ = sess.run([cross_entropy_loss, train_op], feed_dict={input_image: images, correct_label: labels, keep_prob: 0.9,learning_rate: 0.001})
+            total_loss.append(loss)
+        #print("Batch finished at: " + str(datetime.now()))
+        print("Loss: %f" % (sum(total_loss)/len(total_loss)))
 tests.test_train_nn(train_nn)
 
 def run():
     num_classes = 2
-    image_shape = (160, 576)
+    image_shape = (256, 256)
     data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
@@ -141,32 +142,20 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
-        
-        # Initialize parameters
-        EPOCHS = 40
-        BATCH_SIZE = 50
-        #learning_rate = 0.001
-
-        # Initialize placeholders
+        EPOCHS = 50
+        BATCH_SIZE = 10
         correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
         learning_rate = tf.placeholder(tf.float32)
 
         vgg_input, vgg_keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
         layer = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
-
         logits, train_op, cross_entropy_loss = optimize(layer, correct_label, learning_rate, num_classes)
 
         # TODO: Train NN using the train_nn function
-
         train_nn(sess, EPOCHS, BATCH_SIZE, get_batches_fn, train_op, cross_entropy_loss, vgg_input, correct_label, vgg_keep_prob, learning_rate)
 
-
         # TODO: Save inference data using helper.save_inference_samples
-        #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
-
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, vgg_keep_prob, vgg_input)
-
-
         # OPTIONAL: Apply the trained model to a video
 
 
