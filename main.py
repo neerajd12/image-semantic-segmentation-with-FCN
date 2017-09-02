@@ -55,18 +55,19 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    # 
-    conv_layer7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, 1)
-    deconv1 = tf.layers.conv2d_transpose(conv_layer7, num_classes, 4, strides=(2, 2), padding='same')
+    conv1 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size=1, strides=(1, 1), padding='same')
+    deconv1 = tf.layers.conv2d_transpose(conv1, num_classes, kernel_size=4, strides=(2, 2), padding='same')
 
-    conv_layer4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, 1)
-    deconv1 = tf.add(deconv1, conv_layer4)
+    conv2 = tf.layers.conv2d(vgg_layer4_out, num_classes, kernel_size=1, strides=(1, 1), padding='same')
+    deconv1 = tf.add(deconv1, conv2)
+    
     deconv2 = tf.layers.conv2d_transpose(deconv1, num_classes, 4, strides=(2, 2), padding='same')
 
-    conv_layer3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, 1)
-    deconv2 = tf.add(deconv2, conv_layer3)
-    deconv_out = tf.layers.conv2d_transpose(deconv2, num_classes, 16, strides=(8, 8), padding='same')
-    return deconv_out
+    conv3 = tf.layers.conv2d(vgg_layer3_out, num_classes, kernel_size=1, strides=(1, 1), padding='same')
+    deconv2 = tf.add(deconv2, conv3)
+
+    output = tf.layers.conv2d_transpose(deconv2, num_classes, kernel_size=16, strides=(8, 8), padding='same')
+    return output
 tests.test_layers(layers)
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -114,13 +115,12 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         for images, labels in get_batches_fn(batch_size):
             loss, _ = sess.run([cross_entropy_loss, train_op], feed_dict={input_image: images, correct_label: labels, keep_prob: 0.9,learning_rate: 0.001})
             total_loss.append(loss)
-        #print("Batch finished at: " + str(datetime.now()))
         print("Loss: %f" % (sum(total_loss)/len(total_loss)))
 tests.test_train_nn(train_nn)
 
 def run():
     num_classes = 2
-    image_shape = (256, 256)
+    image_shape = (160, 576)
     data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
@@ -142,7 +142,7 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
-        EPOCHS = 50
+        EPOCHS = 100
         BATCH_SIZE = 10
         correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
         learning_rate = tf.placeholder(tf.float32)
