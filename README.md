@@ -4,7 +4,7 @@
 Using Fully Convolution Network to detect road
 
 Source
-![Alt text](uu_000099.png?raw=true "Architecture")
+![Alt text](1.png?raw=true "Architecture")
 
 Result
-![Alt text](uu_000099_result.png?raw=true "Architecture")
+![Alt text](result.png?raw=true "Architecture")
